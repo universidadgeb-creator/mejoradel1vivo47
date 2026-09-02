@@ -74,7 +74,7 @@ export function isoWeekUTC(date: Date): { year: number; week: number } {
   return { year: d.getUTCFullYear(), week };
 }
 
-function mondayOfIsoWeek(year: number, week: number): Date {
+export function mondayOfIsoWeek(year: number, week: number): Date {
   const jan4 = new Date(Date.UTC(year, 0, 4));
   const jan4Day = jan4.getUTCDay() || 7; // lunes=1 ... domingo=7
   const week1Monday = new Date(jan4);
@@ -93,4 +93,9 @@ export function shiftWeek(
   const monday = mondayOfIsoWeek(year, week);
   monday.setUTCDate(monday.getUTCDate() + deltaWeeks * 7);
   return isoWeekUTC(monday);
+}
+
+/** Número de semanas ISO que tiene un año (52 o 53). */
+export function isoWeeksInYear(year: number): number {
+  return isoWeekUTC(new Date(Date.UTC(year, 11, 28))).week;
 }

@@ -1,6 +1,14 @@
 import type { CountryHeatmap as CountryHeatmapData } from "@/lib/stats";
 
-export default function CountryHeatmap({ data }: { data: CountryHeatmapData }) {
+export default function CountryHeatmap({
+  data,
+  club,
+  onSelect,
+}: {
+  data: CountryHeatmapData;
+  club: string;
+  onSelect?: (club: string, pais: string) => void;
+}) {
   if (data.rows.length === 0) {
     return <p className="text-sm text-neutral-400">Sin datos para este filtro</p>;
   }
@@ -30,12 +38,18 @@ export default function CountryHeatmap({ data }: { data: CountryHeatmapData }) {
           {data.rows.map((row) => (
             <tr key={row.pais}>
               <td className="sticky left-0 z-10 bg-white px-2 py-1 dark:bg-neutral-900">
-                <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                  {row.pais}
-                </div>
-                {row.area && (
-                  <div className="text-[11px] text-neutral-400">{row.area}</div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => onSelect?.(club, row.pais)}
+                  className="rounded-lg px-1 py-0.5 text-left hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                >
+                  <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                    {row.pais}
+                  </div>
+                  {row.area && (
+                    <div className="text-[11px] text-neutral-400">{row.area}</div>
+                  )}
+                </button>
               </td>
               {row.cells.map((active, i) => (
                 <td key={data.weeks[i].key} className="px-1 py-1 text-center">

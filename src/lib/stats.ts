@@ -1,5 +1,13 @@
 import { areaForCountry, CLUB_CODES, CLUB_NAMES, CLUB_ROSTERS } from "./rosters";
-import { compareWeekKey, isoWeek, shiftWeek, weekKey, weekLabel } from "./date";
+import {
+  compareWeekKey,
+  isoWeek,
+  isoWeeksInYear,
+  mondayOfIsoWeek,
+  shiftWeek,
+  weekKey,
+  weekLabel,
+} from "./date";
 import type { ClubCode, Filters, Mejora } from "./types";
 
 export function applyFilters(mejoras: Mejora[], filters: Filters): Mejora[] {
@@ -22,9 +30,19 @@ function metaFor(club: ClubCode | "ALL"): number {
   return clubsInScope(club).reduce((sum, c) => sum + CLUB_ROSTERS[c].length, 0);
 }
 
-function absWeek(key: string): number {
+// Base fija anterior a cualquier dato real, para poder sumar semanas ISO de
+// forma lineal entre años (evita que una racha se corte falsamente en Año Nuevo).
+const ABS_WEEK_BASE_YEAR = 2000;
+
+export function absWeek(key: string): number {
   const [y, w] = key.split("-").map(Number);
-  return y * 100 + w;
+  let total = w;
+  if (y >= ABS_WEEK_BASE_YEAR) {
+    for (let yr = ABS_WEEK_BASE_YEAR; yr < y; yr++) total += isoWeeksInYear(yr);
+  } else {
+    for (let yr = y; yr < ABS_WEEK_BASE_YEAR; yr++) total -= isoWeeksInYear(yr);
+  }
+  return total;
 }
 
 interface WeekPoint {
@@ -112,7 +130,7 @@ function capitalizeWords(s: string): string {
     .join(" ");
 }
 
-function longestConsecutiveStreak(weeksActive: Set<number>): number {
+export function longestConsecutiveStreak(weeksActive: Set<number>): number {
   let best = 0;
   for (const w of weeksActive) {
     if (weeksActive.has(w - 1)) continue; // no es el inicio de una racha
@@ -382,5 +400,86 @@ export function computeStats(
     topContributors,
     contributorRows,
     countryHeatmap,
+  };
+}
+
+export interface CountryCalendarWeek {
+  key: string;
+  label: string;
+  month: number; // 0-11, mes del lunes de esa semana
+  active: boolean;
+}
+
+export interface CountryDetail {
+  club: ClubCode;
+  pais: string;
+  area: string | null;
+  totalAllTime: number;
+  totalYear: number;
+  bestStreak: number;
+  currentStreak: number;
+  years: number[];
+  selectedYear: number;
+  calendarWeeks: CountryCalendarWeek[];
+  entries: Mejora[];
+}
+
+export function buildCountryDetail(
+  allMejoras: Mejora[],
+  club: ClubCode,
+  paisNorm: string,
+  year: number,
+  now: Date = new Date()
+): CountryDetail {
+  const countryAll = allMejoras
+    .filter((m) => m.club === club && m.equipoNorm === paisNorm)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const pais = countryAll[0]?.equipo ?? capitalizeWords(paisNorm);
+  const area = areaForCountry(club, paisNorm);
+
+  const years = Array.from(new Set(countryAll.map((m) => m.year))).sort((a, b) => b - a);
+  const selectedYear = years.includes(year) ? year : (years[0] ?? now.getUTCFullYear());
+
+  const activeWeeksAbs = new Set(countryAll.map((m) => absWeek(m.weekKey)));
+  const bestStreak = longestConsecutiveStreak(activeWeeksAbs);
+
+  // La semana en curso normalmente todavía no "cierra"; si el país ya subió
+  // algo esta semana se cuenta, si no se arranca desde la última semana
+  // completa (mismo criterio que el resto del dashboard).
+  const nowIso = isoWeek(now);
+  const thisWeekAbs = absWeek(weekKey(nowIso.year, nowIso.week));
+  let currentStreak = 0;
+  let cur = activeWeeksAbs.has(thisWeekAbs) ? thisWeekAbs : thisWeekAbs - 1;
+  while (activeWeeksAbs.has(cur)) {
+    currentStreak += 1;
+    cur -= 1;
+  }
+
+  const numWeeks = isoWeeksInYear(selectedYear);
+  const calendarWeeks: CountryCalendarWeek[] = Array.from({ length: numWeeks }, (_, i) => {
+    const week = i + 1;
+    const key = weekKey(selectedYear, week);
+    return {
+      key,
+      label: weekLabel(selectedYear, week),
+      month: mondayOfIsoWeek(selectedYear, week).getUTCMonth(),
+      active: activeWeeksAbs.has(absWeek(key)),
+    };
+  });
+
+  const entries = countryAll.filter((m) => m.year === selectedYear);
+
+  return {
+    club,
+    pais,
+    area,
+    totalAllTime: countryAll.length,
+    totalYear: entries.length,
+    bestStreak,
+    currentStreak,
+    years,
+    selectedYear,
+    calendarWeeks,
+    entries,
   };
 }

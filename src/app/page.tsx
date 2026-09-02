@@ -12,9 +12,11 @@ import TopCountries from "@/components/TopCountries";
 import ParticipationCards from "@/components/ParticipationCards";
 import ContributorsSection from "@/components/ContributorsSection";
 import CountryHeatmap from "@/components/CountryHeatmap";
+import CountryDetailModal from "@/components/CountryDetailModal";
 import { BoltIcon, CalendarIcon, FlagIcon, TargetIcon, TrendIcon, TrophyIcon } from "@/components/icons";
-import { applyFilters, computeStats } from "@/lib/stats";
+import { applyFilters, buildCountryDetail, computeStats } from "@/lib/stats";
 import { areaForCountry, CLUB_NAMES } from "@/lib/rosters";
+import { stripAccents } from "@/lib/normalize";
 import { formatDateEs, formatNumber, formatPercent, downloadCsv } from "@/lib/format";
 import type { ClubCode, DashboardData, Filters } from "@/lib/types";
 
@@ -33,6 +35,11 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [selectedCountry, setSelectedCountry] = useState<{
+    club: ClubCode;
+    paisNorm: string;
+    year: number;
+  } | null>(null);
 
   const load = useCallback(async (bustCache: boolean) => {
     try {
@@ -82,6 +89,26 @@ export default function Page() {
   function patchFilters(patch: Partial<Filters>) {
     setFilters((f) => ({ ...f, ...patch }));
   }
+
+  function selectCountry(club: string, pais: string) {
+    if (!data) return;
+    const paisNorm = stripAccents(pais);
+    const years = data.mejoras
+      .filter((m) => m.club === club && m.equipoNorm === paisNorm)
+      .map((m) => m.year);
+    const year = years.length ? Math.max(...years) : new Date().getFullYear();
+    setSelectedCountry({ club: club as ClubCode, paisNorm, year });
+  }
+
+  const countryDetail = useMemo(() => {
+    if (!data || !selectedCountry) return null;
+    return buildCountryDetail(
+      data.mejoras,
+      selectedCountry.club,
+      selectedCountry.paisNorm,
+      selectedCountry.year
+    );
+  }, [data, selectedCountry]);
 
   function exportCsv() {
     downloadCsv(
@@ -236,13 +263,13 @@ export default function Page() {
                 <ClubTrendChart data={stats.weeklyBySegment} series={stats.segments} />
               </Panel>
               <Panel title="Top 5 rachas de países" subtitle="Semanas consecutivas subiendo al menos una mejora.">
-                <StreaksList streaks={stats.topStreaks} />
+                <StreaksList streaks={stats.topStreaks} onSelect={selectCountry} />
               </Panel>
             </div>
 
             <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Panel title="Top países" subtitle="Países con más mejoras registradas.">
-                <TopCountries countries={stats.topCountries} />
+              <Panel title="Top países" subtitle="Países con más mejoras registradas. Clic para ver el detalle.">
+                <TopCountries countries={stats.topCountries} onSelect={selectCountry} />
               </Panel>
               <Panel title="Participación por club" subtitle="">
                 <ParticipationCards participation={stats.participation} />
@@ -253,9 +280,13 @@ export default function Page() {
               <div className="mb-6">
                 <Panel
                   title="Participación semanal por país"
-                  subtitle={`Últimas ${stats.countryHeatmap.weeks.length} semanas completas. Verde indica que el país subió al menos una mejora.`}
+                  subtitle={`Últimas ${stats.countryHeatmap.weeks.length} semanas completas. Verde indica que el país subió al menos una mejora. Clic en un país para ver su detalle.`}
                 >
-                  <CountryHeatmap data={stats.countryHeatmap} />
+                  <CountryHeatmap
+                    data={stats.countryHeatmap}
+                    club={filters.club}
+                    onSelect={selectCountry}
+                  />
                 </Panel>
               </div>
             )}
@@ -282,6 +313,15 @@ export default function Page() {
           </>
         ) : null}
       </div>
+      {countryDetail && (
+        <CountryDetailModal
+          detail={countryDetail}
+          onClose={() => setSelectedCountry(null)}
+          onYearChange={(year) =>
+            setSelectedCountry((c) => (c ? { ...c, year } : c))
+          }
+        />
+      )}
     </div>
   );
 }
