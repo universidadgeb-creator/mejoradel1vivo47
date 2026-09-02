@@ -13,7 +13,7 @@ import ParticipationCards from "@/components/ParticipationCards";
 import ContributorsSection from "@/components/ContributorsSection";
 import { BoltIcon, CalendarIcon, FlagIcon, TargetIcon, TrendIcon, TrophyIcon } from "@/components/icons";
 import { applyFilters, computeStats } from "@/lib/stats";
-import { CLUB_NAMES } from "@/lib/rosters";
+import { areaForCountry, CLUB_NAMES } from "@/lib/rosters";
 import { formatDateEs, formatNumber, formatPercent, downloadCsv } from "@/lib/format";
 import type { ClubCode, DashboardData, Filters } from "@/lib/types";
 
@@ -90,6 +90,7 @@ export default function Page() {
         Semana: m.weekLabel,
         Sucursal: m.sucursal,
         "Equipo (País)": m.equipo,
+        Área: m.club ? (areaForCountry(m.club, m.equipoNorm) ?? "") : "",
         Colaborador: m.nombre,
         Oportunidad: m.oportunidad,
         Mejora: m.explicacion,
@@ -186,7 +187,11 @@ export default function Page() {
               <KpiCard
                 label={filters.club === "ALL" ? "Club líder" : "País líder"}
                 value={stats.segmentLeader?.nombre ?? "—"}
-                sublabel={stats.segmentLeader ? `${formatNumber(stats.segmentLeader.total)} mejoras` : undefined}
+                sublabel={
+                  stats.segmentLeader
+                    ? `${stats.segmentLeader.area ? `${stats.segmentLeader.area} · ` : ""}${formatNumber(stats.segmentLeader.total)} mejoras`
+                    : undefined
+                }
                 icon={<TrophyIcon />}
               />
               <KpiCard
@@ -194,7 +199,7 @@ export default function Page() {
                 value={stats.rachaPaisLider?.pais ?? "—"}
                 sublabel={
                   stats.rachaPaisLider
-                    ? `${CLUB_NAMES[stats.rachaPaisLider.club]} · ${stats.rachaPaisLider.streak} semanas`
+                    ? `${CLUB_NAMES[stats.rachaPaisLider.club]}${stats.rachaPaisLider.area ? ` · ${stats.rachaPaisLider.area}` : ""} · ${stats.rachaPaisLider.streak} semanas`
                     : undefined
                 }
                 icon={<FlagIcon />}

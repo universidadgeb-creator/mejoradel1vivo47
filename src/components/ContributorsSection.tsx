@@ -11,7 +11,7 @@ const CLUB_BADGE: Record<string, string> = {
   VR: "bg-emerald-50 text-emerald-700",
 };
 
-type SortKey = "total" | "nombre" | "sucursal" | "equipo" | "ultimaFecha";
+type SortKey = "total" | "nombre" | "sucursal" | "equipo" | "area" | "ultimaFecha";
 
 export default function ContributorsSection({
   topContributors,
@@ -31,13 +31,14 @@ export default function ContributorsSection({
           (r) =>
             r.nombre.toLowerCase().includes(q) ||
             r.equipo.toLowerCase().includes(q) ||
-            r.sucursal.toLowerCase().includes(q)
+            r.sucursal.toLowerCase().includes(q) ||
+            (r.area ?? "").toLowerCase().includes(q)
         )
       : rows;
     const sorted = [...filtered].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       if (sortKey === "total") return (a.total - b.total) * dir;
-      return String(a[sortKey]).localeCompare(String(b[sortKey])) * dir;
+      return String(a[sortKey] ?? "").localeCompare(String(b[sortKey] ?? "")) * dir;
     });
     return sorted;
   }, [rows, search, sortKey, sortDir]);
@@ -99,12 +100,12 @@ export default function ContributorsSection({
               Quién sube las mejoras
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Desglose por sucursal, equipo (país) y colaborador.
+              Desglose por sucursal, equipo (país), área y colaborador.
             </p>
           </div>
           <input
             type="search"
-            placeholder="Buscar persona, equipo o sucursal…"
+            placeholder="Buscar persona, equipo, área o sucursal…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-xl border border-black/10 bg-white px-3 py-1.5 text-sm outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-neutral-950 dark:text-neutral-100"
@@ -116,6 +117,7 @@ export default function ContributorsSection({
               <tr>
                 <Th label="Sucursal" active={sortKey === "sucursal"} dir={sortDir} onClick={() => toggleSort("sucursal")} />
                 <Th label="Equipo (país)" active={sortKey === "equipo"} dir={sortDir} onClick={() => toggleSort("equipo")} />
+                <Th label="Área" active={sortKey === "area"} dir={sortDir} onClick={() => toggleSort("area")} />
                 <Th label="Colaborador" active={sortKey === "nombre"} dir={sortDir} onClick={() => toggleSort("nombre")} />
                 <Th label="Mejoras" active={sortKey === "total"} dir={sortDir} onClick={() => toggleSort("total")} right />
                 <Th
@@ -129,7 +131,7 @@ export default function ContributorsSection({
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-neutral-400">
+                  <td colSpan={6} className="px-3 py-6 text-center text-neutral-400">
                     Sin resultados
                   </td>
                 </tr>
@@ -147,6 +149,9 @@ export default function ContributorsSection({
                       </span>
                     </td>
                     <td className="px-3 py-2 text-neutral-700 dark:text-neutral-200">{r.equipo}</td>
+                    <td className="px-3 py-2 text-neutral-500 dark:text-neutral-400">
+                      {r.area ?? "—"}
+                    </td>
                     <td className="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-100">
                       {r.nombre}
                     </td>

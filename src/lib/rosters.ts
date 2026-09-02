@@ -50,3 +50,25 @@ export const CLUB_NAMES: Record<ClubCode, string> = {
 };
 
 export const CLUB_CODES: ClubCode[] = ["NAC", "GMT", "VR"];
+
+// Cada "país" es en realidad un equipo/área funcional del club (misma
+// posición dentro del roster = misma área en los 3 clubes). Naciones Unidas
+// tiene un país (equipo) extra: Acuática.
+const AREA_SEQUENCE = [
+  "Coaches Fuerza",
+  "Coaches Estiramiento",
+  "Nutrición",
+  "Administración",
+  "Orden y Limpieza",
+  "Mantenimiento",
+  "Mobility",
+  "Kids",
+  "Comercial",
+  "Tutoriales",
+  "Acuática",
+];
+
+export function areaForCountry(club: ClubCode, paisNorm: string): string | null {
+  const idx = CLUB_ROSTERS[club].indexOf(paisNorm);
+  return idx === -1 ? null : (AREA_SEQUENCE[idx] ?? null);
+}

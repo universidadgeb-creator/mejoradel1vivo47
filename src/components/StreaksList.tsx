@@ -24,6 +24,7 @@ export default function StreaksList({ streaks }: { streaks: CountryStreak[] }) {
           <div className="flex flex-1 flex-col">
             <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
               {s.pais}
+              {s.area && <span className="font-normal text-neutral-400"> · {s.area}</span>}
             </span>
             <span
               className={`w-fit rounded-full px-2 py-0.5 text-[11px] font-medium ${CLUB_BADGE[s.club]}`}

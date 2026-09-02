@@ -9,7 +9,7 @@ const CLUB_BADGE: Record<string, string> = {
 export default function TopCountries({
   countries,
 }: {
-  countries: { club: string; pais: string; total: number }[];
+  countries: { club: string; pais: string; area?: string | null; total: number }[];
 }) {
   if (countries.length === 0) {
     return <p className="text-sm text-neutral-400">Sin datos para este filtro</p>;
@@ -20,9 +20,10 @@ export default function TopCountries({
       {countries.map((c, i) => (
         <li key={`${c.club}-${c.pais}`} className="flex items-center gap-3">
           <span className="w-4 shrink-0 text-xs font-semibold text-neutral-400">{i + 1}</span>
-          <div className="flex w-40 shrink-0 flex-col">
+          <div className="flex w-44 shrink-0 flex-col">
             <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
               {c.pais}
+              {c.area && <span className="font-normal text-neutral-400"> · {c.area}</span>}
             </span>
             <span
               className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-medium ${CLUB_BADGE[c.club]}`}

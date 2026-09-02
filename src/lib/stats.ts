@@ -1,4 +1,4 @@
-import { CLUB_CODES, CLUB_NAMES, CLUB_ROSTERS } from "./rosters";
+import { areaForCountry, CLUB_CODES, CLUB_NAMES, CLUB_ROSTERS } from "./rosters";
 import { compareWeekKey, isoWeek, weekKey, weekLabel } from "./date";
 import type { ClubCode, Filters, Mejora } from "./types";
 
@@ -37,6 +37,7 @@ interface WeekPoint {
 export interface CountryStreak {
   club: ClubCode;
   pais: string;
+  area: string | null;
   streak: number;
 }
 
@@ -52,6 +53,7 @@ export interface ContributorRow {
   sucursal: string;
   club: ClubCode;
   equipo: string;
+  area: string | null;
   nombre: string;
   total: number;
   ultimaFecha: string;
@@ -64,15 +66,15 @@ export interface DashboardStats {
   metaSemanal: number;
   cumplimiento: number;
   clubLider: { club: ClubCode; total: number } | null;
-  segmentLeader: { nombre: string; total: number } | null;
+  segmentLeader: { nombre: string; area: string | null; total: number } | null;
   rachaPaisLider: CountryStreak | null;
   weeklyTrend: WeekPoint[];
   weeklyByClub: { weekKey: string; weekLabel: string; [club: string]: number | string }[];
   weeklyBySegment: { weekKey: string; weekLabel: string; [key: string]: number | string }[];
   segments: { key: string; label: string }[];
   totalsByClub: { club: ClubCode; nombre: string; total: number }[];
-  totalsBySegment: { nombre: string; total: number }[];
-  topCountries: { club: ClubCode; pais: string; total: number }[];
+  totalsBySegment: { nombre: string; area: string | null; total: number }[];
+  topCountries: { club: ClubCode; pais: string; area: string | null; total: number }[];
   topStreaks: CountryStreak[];
   participation: {
     weekLabel: string;
@@ -163,10 +165,11 @@ export function computeStats(
     if (!displayPais.has(key)) displayPais.set(key, m.equipo);
   }
   for (const [key, weeks] of activeWeeksByCountry.entries()) {
-    const [club] = key.split("::") as [ClubCode];
+    const [club, equipoNorm] = key.split("::") as [ClubCode, string];
     streaks.push({
       club,
       pais: displayPais.get(key) ?? key,
+      area: areaForCountry(club, equipoNorm),
       streak: longestConsecutiveStreak(weeks),
     });
   }
@@ -202,12 +205,20 @@ export function computeStats(
   );
 
   // --- Top países ---
-  const countryTotals = new Map<string, { club: ClubCode; pais: string; total: number }>();
+  const countryTotals = new Map<
+    string,
+    { club: ClubCode; pais: string; area: string | null; total: number }
+  >();
   for (const m of scoped) {
     if (!m.club) continue;
     const key = `${m.club}::${m.equipoNorm}`;
     if (!countryTotals.has(key)) {
-      countryTotals.set(key, { club: m.club, pais: m.equipo, total: 0 });
+      countryTotals.set(key, {
+        club: m.club,
+        pais: m.equipo,
+        area: areaForCountry(m.club, m.equipoNorm),
+        total: 0,
+      });
     }
     countryTotals.get(key)!.total += 1;
   }
@@ -215,12 +226,12 @@ export function computeStats(
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
 
-  const totalsBySegment: { nombre: string; total: number }[] =
+  const totalsBySegment: { nombre: string; area: string | null; total: number }[] =
     filters.club === "ALL"
-      ? totalsByClub.map((c) => ({ nombre: c.nombre, total: c.total }))
+      ? totalsByClub.map((c) => ({ nombre: c.nombre, area: null, total: c.total }))
       : Array.from(countryTotals.values())
           .sort((a, b) => b.total - a.total)
-          .map((c) => ({ nombre: c.pais, total: c.total }));
+          .map((c) => ({ nombre: c.pais, area: c.area, total: c.total }));
 
   // --- Tendencia por segmento: por club (vista general) o por país (club único) ---
   let weeklyBySegment: { weekKey: string; weekLabel: string; [key: string]: number | string }[];
@@ -283,6 +294,7 @@ export function computeStats(
       sucursal: m.sucursal,
       club: m.club,
       equipo: m.equipo,
+      area: areaForCountry(m.club, m.equipoNorm),
       nombre: m.nombre,
       total: 0,
       ultimaFecha: m.fecha,
