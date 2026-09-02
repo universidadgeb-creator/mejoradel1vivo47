@@ -23,11 +23,20 @@ Dashboard de seguimiento de la iniciativa "Mejora del 1%" de Vivo 47, construido
 
 ```bash
 npm install
+npm run generate-data   # descarga el sheet y genera public/data.json (necesita salida a internet)
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Abre [http://localhost:3000](http://localhost:3000). El repo ya incluye un `public/data.json` de arranque para que `npm run dev` muestre datos reales sin tener que correr `generate-data` primero.
 
-## Deploy
+## Deploy: GitHub Pages
 
-Proyecto listo para desplegar en [Vercel](https://vercel.com/new) (framework Next.js, sin variables de entorno requeridas ya que el Sheet es de lectura pública).
+El sitio es 100% estático (`output: "export"` en `next.config.ts`) porque Google Sheets no permite leer el CSV directamente desde el navegador (sin CORS), así que los datos se descargan **en el build**, no en el navegador del usuario:
+
+1. `.github/workflows/deploy.yml` corre en cada push a `main`, cada 30 minutos (`schedule`) y manualmente (`workflow_dispatch`).
+2. El workflow ejecuta `npm run generate-data` (trae el sheet fresco a `public/data.json`), luego `npm run build` (export estático a `out/`) y publica ese resultado en GitHub Pages.
+3. La app en el navegador solo lee el `data.json` ya generado — el botón "Refrescar" vuelve a pedir ese mismo archivo sin caché, útil si el workflow acaba de correr.
+
+**Activar Pages una sola vez:** en el repo de GitHub, ve a `Settings → Pages` y en "Source" elige **GitHub Actions**. Después de eso, el sitio queda publicado en `https://<usuario>.github.io/mejoradel1vivo47/` y se mantiene actualizado solo.
+
+Si el repo cambia de nombre, actualiza `repoName` en `next.config.ts` (controla el `basePath` con el que se sirven los assets).

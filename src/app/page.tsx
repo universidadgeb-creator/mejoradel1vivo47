@@ -33,10 +33,12 @@ export default function Page() {
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
-  const load = useCallback(async (fresh: boolean) => {
+  const load = useCallback(async (bustCache: boolean) => {
     try {
-      const res = await fetch(`/api/data${fresh ? "?fresh=1" : ""}`);
-      if (!res.ok) throw new Error((await res.json()).error ?? "Error al cargar datos");
+      const res = await fetch(`data.json${bustCache ? `?t=${Date.now()}` : ""}`, {
+        cache: bustCache ? "no-store" : "default",
+      });
+      if (!res.ok) throw new Error("No se pudo cargar data.json");
       const json: DashboardData = await res.json();
       setData(json);
       setError(null);
@@ -155,7 +157,10 @@ export default function Page() {
                 </span>{" "}
                 mejoras visibles de {formatNumber(data.mejoras.length)} normalizadas
               </span>
-              <span>Actualizado: {new Date(data.updatedAt).toLocaleString("es-MX")}</span>
+              <span>
+                Datos generados: {new Date(data.updatedAt).toLocaleString("es-MX")} · se
+                actualizan automáticamente cada 30 min
+              </span>
             </div>
 
             <div className="mb-6">
