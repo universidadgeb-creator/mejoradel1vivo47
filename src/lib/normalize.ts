@@ -1,4 +1,4 @@
-import { isoWeek, monthKey, monthLabel, parseSheetDate, weekKey, weekLabel } from "./date";
+import { isoWeekUTC, monthKey, monthLabel, parseSheetDate, weekKey, weekLabel } from "./date";
 import type { ClubCode, Mejora } from "./types";
 
 export function stripAccents(value: string): string {
@@ -34,7 +34,7 @@ export function normalizeRows(raw: Record<string, string>[]): Mejora[] {
     if (!date) return;
 
     const semanaCol = Number(row["Semana ISO"] || row["Semana"]);
-    const computed = isoWeek(date);
+    const computed = isoWeekUTC(date);
     const week = Number.isFinite(semanaCol) && semanaCol > 0 ? semanaCol : computed.week;
     const year = date.getUTCFullYear();
 

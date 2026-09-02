@@ -1,5 +1,5 @@
 import { areaForCountry, CLUB_CODES, CLUB_NAMES, CLUB_ROSTERS } from "./rosters";
-import { compareWeekKey, isoWeek, weekKey, weekLabel } from "./date";
+import { compareWeekKey, isoWeek, shiftWeek, weekKey, weekLabel } from "./date";
 import type { ClubCode, Filters, Mejora } from "./types";
 
 export function applyFilters(mejoras: Mejora[], filters: Filters): Mejora[] {
@@ -59,6 +59,18 @@ export interface ContributorRow {
   ultimaFecha: string;
 }
 
+export interface HeatmapRow {
+  pais: string;
+  area: string | null;
+  cells: boolean[];
+  activeCount: number;
+}
+
+export interface CountryHeatmap {
+  weeks: { key: string; label: string }[];
+  rows: HeatmapRow[];
+}
+
 export interface DashboardStats {
   totalYTD: number;
   mejorasEsteMes: number;
@@ -89,6 +101,15 @@ export interface DashboardStats {
   };
   topContributors: Contributor[];
   contributorRows: ContributorRow[];
+  countryHeatmap: CountryHeatmap | null;
+}
+
+function capitalizeWords(s: string): string {
+  return s
+    .toLowerCase()
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
 }
 
 function longestConsecutiveStreak(weeksActive: Set<number>): number {
@@ -271,6 +292,38 @@ export function computeStats(
     };
   });
 
+  // --- Heatmap semanal por país (solo con un club seleccionado) ---
+  let countryHeatmap: CountryHeatmap | null = null;
+  if (filters.club !== "ALL") {
+    const club = filters.club;
+    const [lcYear, lcWeekNum] = lastCompleteWeekKey.split("-").map(Number);
+    const heatmapWeeks = Array.from({ length: 12 }, (_, i) => {
+      const { year, week } = shiftWeek(lcYear, lcWeekNum, i - 11);
+      return { key: weekKey(year, week), label: weekLabel(year, week) };
+    });
+    const weekKeysInRange = new Set(heatmapWeeks.map((w) => w.key));
+    const activeByCountry = new Map<string, Set<string>>();
+    const displayName = new Map<string, string>();
+    for (const m of scopedByClub) {
+      if (m.club !== club) continue;
+      if (!displayName.has(m.equipoNorm)) displayName.set(m.equipoNorm, m.equipo);
+      if (!weekKeysInRange.has(m.weekKey)) continue;
+      if (!activeByCountry.has(m.equipoNorm)) activeByCountry.set(m.equipoNorm, new Set());
+      activeByCountry.get(m.equipoNorm)!.add(m.weekKey);
+    }
+    const rows: HeatmapRow[] = CLUB_ROSTERS[club].map((paisNorm) => {
+      const activeWeeks = activeByCountry.get(paisNorm) ?? new Set<string>();
+      const cells = heatmapWeeks.map((w) => activeWeeks.has(w.key));
+      return {
+        pais: displayName.get(paisNorm) ?? capitalizeWords(paisNorm),
+        area: areaForCountry(club, paisNorm),
+        cells,
+        activeCount: cells.filter(Boolean).length,
+      };
+    });
+    countryHeatmap = { weeks: heatmapWeeks, rows };
+  }
+
   // --- Colaboradores (quién sube las mejoras) ---
   const contributorMap = new Map<string, Contributor>();
   const rowMap = new Map<string, ContributorRow>();
@@ -328,5 +381,6 @@ export function computeStats(
     participation: { weekLabel: lastCompleteWeekLabel, clubs: participationClubs },
     topContributors,
     contributorRows,
+    countryHeatmap,
   };
 }

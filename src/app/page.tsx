@@ -11,6 +11,7 @@ import StreaksList from "@/components/StreaksList";
 import TopCountries from "@/components/TopCountries";
 import ParticipationCards from "@/components/ParticipationCards";
 import ContributorsSection from "@/components/ContributorsSection";
+import CountryHeatmap from "@/components/CountryHeatmap";
 import { BoltIcon, CalendarIcon, FlagIcon, TargetIcon, TrendIcon, TrophyIcon } from "@/components/icons";
 import { applyFilters, computeStats } from "@/lib/stats";
 import { areaForCountry, CLUB_NAMES } from "@/lib/rosters";
@@ -247,6 +248,17 @@ export default function Page() {
                 <ParticipationCards participation={stats.participation} />
               </Panel>
             </div>
+
+            {stats.countryHeatmap && (
+              <div className="mb-6">
+                <Panel
+                  title="Participación semanal por país"
+                  subtitle={`Últimas ${stats.countryHeatmap.weeks.length} semanas completas. Verde indica que el país subió al menos una mejora.`}
+                >
+                  <CountryHeatmap data={stats.countryHeatmap} />
+                </Panel>
+              </div>
+            )}
 
             <div className="mb-6">
               <h2 className="mb-3 text-lg font-bold text-neutral-800 dark:text-neutral-100">

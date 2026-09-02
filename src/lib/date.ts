@@ -59,3 +59,38 @@ export function parseSheetDate(value: string): Date | null {
 export function compareWeekKey(a: string, b: string): number {
   return a.localeCompare(b);
 }
+
+/** Igual que isoWeek(), pero lee el día/mes/año en UTC en vez de zona local.
+ * Necesario para fechas ya ancladas en UTC (p. ej. las que arma mondayOfIsoWeek):
+ * leerlas con getters locales las corre un día en timezones negativos. */
+export function isoWeekUTC(date: Date): { year: number; week: number } {
+  const d = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return { year: d.getUTCFullYear(), week };
+}
+
+function mondayOfIsoWeek(year: number, week: number): Date {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7; // lunes=1 ... domingo=7
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+  const target = new Date(week1Monday);
+  target.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  return target;
+}
+
+/** Desplaza una semana ISO `deltaWeeks` semanas (puede ser negativo), cruzando años correctamente. */
+export function shiftWeek(
+  year: number,
+  week: number,
+  deltaWeeks: number
+): { year: number; week: number } {
+  const monday = mondayOfIsoWeek(year, week);
+  monday.setUTCDate(monday.getUTCDate() + deltaWeeks * 7);
+  return isoWeekUTC(monday);
+}
