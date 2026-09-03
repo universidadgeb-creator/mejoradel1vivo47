@@ -59,11 +59,19 @@ export interface CountryStreak {
   streak: number;
 }
 
+export interface ContributorTeam {
+  club: ClubCode;
+  sucursal: string;
+  equipo: string;
+  area: string | null;
+}
+
 export interface Contributor {
   nombre: string;
   total: number;
   clubs: string[];
   equipos: string[];
+  teams: ContributorTeam[];
   ultimaFecha: string;
 }
 
@@ -352,11 +360,20 @@ export function computeStats(
       total: 0,
       clubs: [],
       equipos: [],
+      teams: [],
       ultimaFecha: m.fecha,
     };
     c.total += 1;
     if (!c.clubs.includes(m.sucursal)) c.clubs.push(m.sucursal);
     if (!c.equipos.includes(m.equipo)) c.equipos.push(m.equipo);
+    if (!c.teams.some((t) => t.club === m.club && t.equipo === m.equipo)) {
+      c.teams.push({
+        club: m.club,
+        sucursal: m.sucursal,
+        equipo: m.equipo,
+        area: areaForCountry(m.club, m.equipoNorm),
+      });
+    }
     if (m.fecha > c.ultimaFecha) c.ultimaFecha = m.fecha;
     contributorMap.set(m.nombre, c);
 

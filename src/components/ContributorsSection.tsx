@@ -67,25 +67,32 @@ export default function ContributorsSection({
         {topBars.length === 0 ? (
           <p className="text-sm text-neutral-400">Sin datos para este filtro</p>
         ) : (
-          <ol className="flex flex-col gap-2">
+          <ol className="flex flex-col gap-3">
             {topBars.map((c, i) => (
-              <li key={c.nombre} className="flex items-center gap-3">
-                <span className="w-4 shrink-0 text-xs font-semibold text-neutral-400">
+              <li key={c.nombre} className="flex gap-3">
+                <span className="w-4 shrink-0 pt-0.5 text-xs font-semibold text-neutral-400">
                   {i + 1}
                 </span>
-                <div className="w-32 shrink-0 truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                  {c.nombre}
-                </div>
-                <div className="flex flex-1 items-center gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                      {c.nombre}
+                    </span>
+                    <span className="ml-auto shrink-0 text-sm font-semibold text-neutral-700 dark:text-neutral-200">
+                      {c.total}
+                    </span>
+                  </div>
+                  <div className="mb-1 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
                     <div
                       className="h-full rounded-full bg-emerald-500"
                       style={{ width: `${Math.max(4, (c.total / max) * 100)}%` }}
                     />
                   </div>
-                  <span className="w-6 text-right text-sm font-semibold text-neutral-700 dark:text-neutral-200">
-                    {c.total}
-                  </span>
+                  <p className="truncate text-[11px] text-neutral-400">
+                    {c.teams
+                      .map((t) => `${t.sucursal} · ${t.equipo}${t.area ? ` (${t.area})` : ""}`)
+                      .join(", ")}
+                  </p>
                 </div>
               </li>
             ))}
