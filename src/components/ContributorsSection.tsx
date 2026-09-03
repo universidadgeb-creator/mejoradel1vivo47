@@ -59,7 +59,7 @@ export default function ContributorsSection({
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
       <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-neutral-900 lg:col-span-2">
         <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-100">
-          Top colaboradores
+          Representantes de equipo
         </h3>
         <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
           Personas con más mejoras registradas.
