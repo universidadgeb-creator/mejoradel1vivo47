@@ -16,7 +16,8 @@ import CountryDetailModal from "@/components/CountryDetailModal";
 import { BoltIcon, CalendarIcon, FlagIcon, TargetIcon, TrendIcon, TrophyIcon } from "@/components/icons";
 import { applyFilters, buildCountryDetail, computeStats } from "@/lib/stats";
 import { areaForCountry, CLUB_NAMES } from "@/lib/rosters";
-import { stripAccents } from "@/lib/normalize";
+import { normalizeRows, stripAccents } from "@/lib/normalize";
+import { fetchLiveRows } from "@/lib/liveSheet";
 import { formatDateEs, formatNumber, formatPercent, downloadCsv } from "@/lib/format";
 import type { ClubCode, DashboardData, Filters } from "@/lib/types";
 
@@ -34,6 +35,8 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [source, setSource] = useState<"snapshot" | "live">("snapshot");
+  const [notice, setNotice] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selectedCountry, setSelectedCountry] = useState<{
     club: ClubCode;
@@ -49,6 +52,7 @@ export default function Page() {
       if (!res.ok) throw new Error("No se pudo cargar data.json");
       const json: DashboardData = await res.json();
       setData(json);
+      setSource("snapshot");
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -64,9 +68,25 @@ export default function Page() {
     load(false);
   }, [load]);
 
-  function refresh() {
+  async function refresh() {
     setRefreshing(true);
-    load(true);
+    setNotice(null);
+    try {
+      const raw = await fetchLiveRows();
+      const mejoras = normalizeRows(raw);
+      if (mejoras.length === 0) throw new Error("la hoja devolvió 0 registros");
+      setData({ mejoras, updatedAt: new Date().toISOString(), rowCount: raw.length });
+      setSource("live");
+      setError(null);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : "error desconocido";
+      await load(true);
+      setNotice(
+        `No se pudo leer Google Sheets en vivo (${reason}). Se muestra la última versión publicada.`
+      );
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   const mejorasForTab = useMemo(() => {
@@ -151,7 +171,7 @@ export default function Page() {
               disabled={refreshing}
               className="rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50 dark:border-white/10 dark:bg-neutral-900 dark:text-neutral-200"
             >
-              {refreshing ? "Actualizando…" : "↻ Refrescar"}
+              {refreshing ? "Consultando Sheets…" : "↻ Refrescar"}
             </button>
             <button
               onClick={exportCsv}
@@ -172,6 +192,11 @@ export default function Page() {
             {error}
           </div>
         )}
+        {notice && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            {notice}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex h-64 items-center justify-center text-sm text-neutral-400">
@@ -187,8 +212,9 @@ export default function Page() {
                 mejoras visibles de {formatNumber(data.mejoras.length)} normalizadas
               </span>
               <span>
-                Datos generados: {new Date(data.updatedAt).toLocaleString("es-MX")} · se
-                actualizan automáticamente cada 30 min
+                {source === "live"
+                  ? `En vivo desde Google Sheets: ${new Date(data.updatedAt).toLocaleString("es-MX")}`
+                  : `Datos generados: ${new Date(data.updatedAt).toLocaleString("es-MX")} · se actualizan automáticamente cada 30 min · usa Refrescar para consultar el Sheet en vivo`}
               </span>
             </div>
 
