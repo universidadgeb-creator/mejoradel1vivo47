@@ -18,6 +18,8 @@ export interface Mejora {
   explicacion: string;
   impacto: string;
   estado: string;
+  fechaAjustada?: boolean; // la fecha capturada era inválida y se usó la de envío
+  fechaOriginal?: string;
 }
 
 export interface DashboardData {

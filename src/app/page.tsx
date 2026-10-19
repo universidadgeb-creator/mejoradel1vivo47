@@ -218,6 +218,26 @@ export default function Page() {
               </span>
             </div>
 
+            {data.mejoras.some((m) => m.fechaAjustada) && (
+              <details className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                <summary className="cursor-pointer font-medium">
+                  {data.mejoras.filter((m) => m.fechaAjustada).length} registros traían una fecha
+                  inválida; se usó la fecha de envío del formulario (ver detalle)
+                </summary>
+                <ul className="mt-2 list-disc pl-5">
+                  {data.mejoras
+                    .filter((m) => m.fechaAjustada)
+                    .map((m) => (
+                      <li key={m.id}>
+                        {m.sucursal} · {m.equipo} · {m.nombre}: capturó {m.fechaOriginal}, se contó
+                        como {formatDateEs(m.fecha)}
+                      </li>
+                    ))}
+                </ul>
+                <p className="mt-1">Conviene corregir la fecha en la hoja &quot;Respuestas&quot;.</p>
+              </details>
+            )}
+
             <div className="mb-6">
               <FiltersBar mejoras={mejorasForTab} filters={filters} onChange={patchFilters} />
             </div>
