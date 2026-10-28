@@ -5,7 +5,12 @@ on:
     branches: [main]
   schedule:
     - cron: "*/30 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: "Aceptar menos filas que la versión publicada (solo si borraste filas a propósito)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,6 +39,8 @@ jobs:
 
       - name: Fetch latest sheet data
         run: npm run generate-data
+        env:
+          ALLOW_SHRINK: ${{ inputs.allow_shrink }}
 
       - name: Build static site
         run: npm run build

@@ -218,6 +218,15 @@ export default function Page() {
               </span>
             </div>
 
+            {source === "snapshot" &&
+              new Date().getTime() - new Date(data.updatedAt).getTime() > 12 * 3600 * 1000 && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                  Estos datos se generaron hace más de 12 horas. Pulsa <strong>Refrescar</strong> para
+                  consultar el Sheet en vivo; si sigue igual, avisa al administrador: la actualización
+                  automática puede estar detenida.
+                </div>
+              )}
+
             {data.mejoras.some((m) => m.fechaAjustada) && (
               <details className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
                 <summary className="cursor-pointer font-medium">
